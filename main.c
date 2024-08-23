@@ -7,6 +7,8 @@
 #include <dirent.h>
 #include <errno.h>
 
+#include "print_utils.h"
+
 #define LEN 1024
 #define BIN_DIR "/usr/bin/"
 
@@ -35,7 +37,7 @@ void ls_command() {
 
 int handle_command(char command[LEN], char *argv[LEN]) {
 	if (strncmp(command, "exit", LEN) == 0) {
-		return 0;
+		exit(EXIT_SUCCESS);
 	} else if (strncmp(command, "ls", LEN) == 0) {
 		ls_command();
 		return -1;
@@ -43,18 +45,23 @@ int handle_command(char command[LEN], char *argv[LEN]) {
 
 	char aux[LEN+strlen(BIN_DIR)];
 	strcat(strcat(aux, BIN_DIR), command);
-	if (access(aux, X_OK)) {
-		pid_t pid = fork();
-		if (pid < 0) {
-			perror("Error creating fork");
-			return 1;
-		}
-		if (pid == 0) {
-			execv(aux, argv);
-		}
-		printf("parent\n");
-	} else {
-		printf("Command not recognized\n");
+	switch(access(aux, X_OK)) {
+		case 0:
+			pid_t pid = fork();
+			if (pid < 0) {
+				perror("Error creating fork");
+				return 1;
+			}
+			if (pid == 0) {
+				execv(aux, argv);
+			}
+			break;
+		case -1:
+			if (errno == ENOENT || errno == ENOTDIR) {
+				perror("Error: Command not recognized");
+			} else {
+				perror("Error");
+			}
 	}
 	return -1;
 }
@@ -65,7 +72,11 @@ int main() {
 
 		char cwd[LEN];
 		getcwd(cwd, LEN);
-		printf("%s> ", cwd);
+		set_foreground(PU_GREEN);
+		printf("%s", cwd);
+		set_foreground(PU_BLUE);
+		printf("> ");
+		reset_style();
 
 
 		char input[LEN];
@@ -77,10 +88,12 @@ int main() {
 		int i = 0;
 		while ((argv[++i] = strtok(NULL, " ")) != NULL);
 		
-		int flag = handle_command(argv[0], argv);
+		if (argv[0] != NULL) {
+			int flag = handle_command(argv[0], argv);
 
-		if (flag != -1)
-			return flag;
+			if (flag != -1)
+				return flag;
+		}
 
 	}
 	return 0;
