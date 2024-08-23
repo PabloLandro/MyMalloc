@@ -55,26 +55,40 @@ int handle_command(char command[LEN], char *argv[LEN]) {
 		exit(EXIT_SUCCESS);
 	} else if (strncmp(command, "ls", LEN) == 0) {
 		ls_command();
-		return -1;
 	} else {
 		execute(command, argv);
 	}
 	
-	return -1;
+	return 1;
+}
+
+void print_header() {
+
+	char *buf;
+
+	// User
+	buf = getenv("USER");
+	set_foreground(PU_GREEN);
+	printf("%s@", buf);
+
+	// Current Working Directory
+	buf = (char*) malloc(sizeof(char) * LEN);
+	getcwd(buf, LEN);
+	set_foreground(PU_BLUE);
+	printf("%s", buf);
+	free(buf);
+
+	// Arrow
+	set_foreground(PU_RED);
+	printf("> ");
+	reset_style();
 }
 
 int main() {
-	printf("Hello, World!\n");
-	while(1) {
+	int flag = 1;
+	while(flag) {
 
-		char cwd[LEN];
-		getcwd(cwd, LEN);
-		set_foreground(PU_GREEN);
-		printf("%s", cwd);
-		set_foreground(PU_BLUE);
-		printf("> ");
-		reset_style();
-
+		print_header();
 
 		char input[LEN];
 		fgets(input, LEN, stdin);
@@ -86,12 +100,9 @@ int main() {
 		while ((argv[++i] = strtok(NULL, " ")) != NULL);
 		
 		if (argv[0] != NULL) {
-			int flag = handle_command(argv[0], argv);
-
-			if (flag != -1)
-				return flag;
+			flag = handle_command(argv[0], argv);
 		}
 
 	}
-	return 0;
+	exit(EXIT_FAILURE);
 }

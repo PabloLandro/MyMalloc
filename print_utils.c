@@ -1,7 +1,7 @@
 #include <stdio.h>
 
 void set_foreground(int color) {
-    printf("\033[38;5;%dm", color);
+    printf("\033[0;%dm", color);
 }
 
 void set_background(int color) {
