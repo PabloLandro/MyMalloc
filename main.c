@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <dirent.h>
 #include <errno.h>
+#include <sys/wait.h>
 
 #include "print_utils.h"
 
@@ -28,41 +29,37 @@ void ls_command() {
 	}
 
 	while ((dp = readdir(dirp)) != NULL) {
-		printf("%s\n", dp->d_name);
+		printf("%s  ", dp->d_name);
 	}
+	printf("\n");
 	
 	if (errno == EBADF)
 		perror("Error reading directory");
 }
 
+void execute(char command[LEN], char *argv[LEN]) {
+	pid_t pid = fork();
+
+	if (pid < 0) {
+		perror("Error creating fork");
+	} else if (pid == 0) {
+		execvp(command, argv);
+	} else {
+		wait(NULL);
+	}
+}
+
 int handle_command(char command[LEN], char *argv[LEN]) {
+	
 	if (strncmp(command, "exit", LEN) == 0) {
 		exit(EXIT_SUCCESS);
 	} else if (strncmp(command, "ls", LEN) == 0) {
 		ls_command();
 		return -1;
+	} else {
+		execute(command, argv);
 	}
-
-	char aux[LEN+strlen(BIN_DIR)];
-	strcat(strcat(aux, BIN_DIR), command);
-	switch(access(aux, X_OK)) {
-		case 0:
-			pid_t pid = fork();
-			if (pid < 0) {
-				perror("Error creating fork");
-				return 1;
-			}
-			if (pid == 0) {
-				execv(aux, argv);
-			}
-			break;
-		case -1:
-			if (errno == ENOENT || errno == ENOTDIR) {
-				perror("Error: Command not recognized");
-			} else {
-				perror("Error");
-			}
-	}
+	
 	return -1;
 }
 
