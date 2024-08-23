@@ -4,11 +4,11 @@
 #include <string.h>
 #include <strings.h>
 #include <unistd.h>
-#include <dirent.h>
 #include <errno.h>
 #include <sys/wait.h>
 
 #include "print_utils.h"
+#include "ls_command.h"
 
 #define LEN 1024
 #define BIN_DIR "/usr/bin/"
@@ -19,23 +19,7 @@ void remove_end_line(char *str) {
 		str[len-1] = '\0';
 }
 
-void ls_command() {
-	DIR *dirp;
-	struct dirent *dp;
 
-	if ((dirp = opendir(".")) == NULL) {
-		perror("Error opening directory");
-		return;
-	}
-
-	while ((dp = readdir(dirp)) != NULL) {
-		printf("%s  ", dp->d_name);
-	}
-	printf("\n");
-	
-	if (errno == EBADF)
-		perror("Error reading directory");
-}
 
 void execute(char command[LEN], char *argv[LEN]) {
 	pid_t pid = fork();
