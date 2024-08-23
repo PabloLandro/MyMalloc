@@ -1,9 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/types.h>
 #include <string.h>
 #include <strings.h>
 #include <unistd.h>
 #include <dirent.h>
+#include <errno.h>
 
 #define LEN 1024
 #define BIN_DIR "/usr/bin/"
@@ -14,12 +16,31 @@ void remove_end_line(char *str) {
 		str[len-1] = '\0';
 }
 
+void ls_command() {
+	DIR *dirp;
+	struct dirent *dp;
 
+	if ((dirp = opendir(".")) == NULL) {
+		perror("Error opening directory");
+		return;
+	}
+
+	while ((dp = readdir(dirp)) != NULL) {
+		printf("%s\n", dp->d_name);
+	}
+	
+	if (errno == EBADF)
+		perror("Error reading directory");
+}
 
 int handle_command(char command[LEN], char *argv[LEN]) {
 	if (strncmp(command, "exit", LEN) == 0) {
 		return 0;
+	} else if (strncmp(command, "ls", LEN) == 0) {
+		ls_command();
+		return -1;
 	}
+
 	char aux[LEN+strlen(BIN_DIR)];
 	strcat(strcat(aux, BIN_DIR), command);
 	if (access(aux, X_OK)) {
