@@ -6,10 +6,12 @@
 #include <unistd.h>
 #include <errno.h>
 #include <sys/wait.h>
+#include <stdbool.h>
 
 #include "print_utils.h"
 #include "ls_command.h"
 #include "my_malloc.h"
+#include "mat_mul_test.h"
 
 #define LEN 1024
 #define BIN_DIR "/usr/bin/"
@@ -72,6 +74,7 @@ void print_header() {
 int main() {
 
 	my_malloc_init();
+	mat_mul_test(4,true);
 	int flag = 1;
 	while(flag) {
 
