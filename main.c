@@ -9,6 +9,7 @@
 
 #include "print_utils.h"
 #include "ls_command.h"
+#include "my_malloc.h"
 
 #define LEN 1024
 #define BIN_DIR "/usr/bin/"
@@ -34,7 +35,7 @@ void execute(char command[LEN], char *argv[LEN]) {
 }
 
 int handle_command(char command[LEN], char *argv[LEN]) {
-	
+	printf("Read %s\n", command);
 	if (strncmp(command, "exit", LEN) == 0) {
 		exit(EXIT_SUCCESS);
 	} else if (strncmp(command, "ls", LEN) == 0) {
@@ -56,11 +57,11 @@ void print_header() {
 	printf("%s@", buf);
 
 	// Current Working Directory
-	buf = (char*) malloc(sizeof(char) * LEN);
+	buf = (char*) my_malloc(sizeof(char) * LEN);
 	getcwd(buf, LEN);
 	set_foreground(PU_BLUE);
 	printf("%s", buf);
-	free(buf);
+	my_free(buf);
 
 	// Arrow
 	set_foreground(PU_RED);
@@ -69,6 +70,8 @@ void print_header() {
 }
 
 int main() {
+
+	my_malloc_init();
 	int flag = 1;
 	while(flag) {
 
