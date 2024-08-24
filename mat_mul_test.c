@@ -116,9 +116,9 @@ bool mat_mul_test(int n, bool debug) {
         printf("All data freed\n");
 
     if (ans) {
-        printf("SUCCESS\n");
+        printf("Matrix multiplication: SUCCESS\n");
     } else {
-        printf("FAILURE\n");
+        printf("Matrix multiplication: FAILURE\n");
     }
 
 }
