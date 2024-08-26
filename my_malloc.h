@@ -7,5 +7,5 @@
 void my_malloc_init();
 void *my_malloc (size_t size);
 void my_free (void *ptr);
-
+void print_state();
 #endif

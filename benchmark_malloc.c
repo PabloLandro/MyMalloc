@@ -5,7 +5,7 @@
 
 #include "my_malloc.h"
 
-#define NUM_TESTS 15
+#define NUM_TESTS 1000
 
 #define N_MALLOCS 50
 #define MALLOC_SIZE 1000
@@ -13,7 +13,7 @@
 
 
 void benchmark (void* (*custom_malloc) (size_t size), void (*custom_free) (void* ptr), bool debug) {
-    void **ptr = custom_malloc(sizeof(void*) * N_MALLOCS);
+    void **ptr = (void**)custom_malloc(sizeof(void*) * N_MALLOCS);
 
     if (debug)
         printf("starting mallocs\n");
