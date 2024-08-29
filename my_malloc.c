@@ -97,9 +97,9 @@ void merge_forward (struct block *b1, struct block *b2) {
 }
 
 void compact (struct block *b1) {
-    if (b1->next != NULL)
+    if (b1->next != NULL && b1->next->free)
         merge_forward(b1, b1->next);
-    if (b1->prev != NULL)
+    if (b1->prev != NULL && b1->prev->free)
         merge_forward(b1->prev, b1);
 }
 
