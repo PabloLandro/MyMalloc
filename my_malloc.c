@@ -32,7 +32,7 @@ void my_malloc_init() {
     head->free = true;
     head->next = NULL;
     head->prev = NULL;
-    head->size = 0;
+    head->size = STACK_SIZE-sizeof(struct block);
 
     tail = (void*)&(STACK[STACK_SIZE-1]);
 
@@ -49,14 +49,7 @@ void my_malloc_init() {
  * @return True if b can allocate.
  */
 bool can_allocate(struct block *b, size_t size) {
-    size_t alloc = size + sizeof(struct block);
-
-    return b->free && (
-        (size <= b->size)
-        ||
-        (b->next != NULL && (size_t)(b->next - b) >= alloc)
-        ||
-        (b->next == NULL && ((size_t)((void*)STACK+STACK_SIZE - (void*)b) >= alloc)));
+    return b->free && size <= b->size;
 }
 
 
@@ -78,11 +71,11 @@ void *my_malloc (size_t size) {
         // Go to the next block
         if (curr->next != NULL)
             curr = curr->next;
-        // Append a block
+        // Append a new block
         else {
             struct block *new = (struct block*)((void*)curr + sizeof(struct block) + curr->size);
             new->prev = curr;
-            new->size = 0;
+            new->size = (size_t)(tail-(void*) new) - sizeof(struct block);
             new->next = NULL;
             new->free = true;
             curr->next = new;
@@ -90,8 +83,10 @@ void *my_malloc (size_t size) {
         }
     }
 
+
     curr->free = false;
-    curr->size = size;
+
+    // If a block fits between the current and the next, we create it
     if (curr->next != NULL && (void*)curr + size + sizeof(struct block) < (void*)curr->next) {
         struct block *aux = (struct block*)((void*)curr + size + sizeof(struct block));
         aux->next = curr->next;
@@ -99,6 +94,17 @@ void *my_malloc (size_t size) {
         aux->next->prev = aux;
         aux->free = true;
         aux->size = ((void*)aux->next - (void*)aux)-sizeof(struct block);
+        curr->size = size;
+    }
+    // If curr is the last block and another fits, we create it
+    else if (curr->next == NULL && (void*)curr + size + sizeof(struct block) < tail) {
+        struct block *aux = (struct block*)((void*)curr + size + sizeof(struct block));
+        curr->next = aux;
+        aux->next = NULL;
+        aux->prev = curr;
+        aux->free = true;
+        aux->size = (tail - (void*)aux)-sizeof(struct block);
+        curr->size = size;
     }
     //printf("allocating %ld bytes in %p, head: %p, tail: %p\n", size+sizeof(struct block), curr, head, tail);
     return ((void*)curr)+sizeof(struct block);
@@ -115,7 +121,11 @@ void *my_malloc (size_t size) {
  * @param[in]  b2 Second block.
  */
 void merge_forward (struct block *b1, struct block *b2) {
+
+    // Update the size
     b1->size = b1->size + b2->size + sizeof(struct block);
+
+    // Change neighbors
     if (b2->next != NULL) {
         b1->next = b2->next;
         (b1->next)->prev = b1;
@@ -132,6 +142,7 @@ void merge_forward (struct block *b1, struct block *b2) {
  * @param[in]  b1 block to be compacted.
  */
 void compact (struct block *b1) {
+    // If possible merge with next and prev
     if (b1->next != NULL && b1->next->free)
         merge_forward(b1, b1->next);
     if (b1->prev != NULL && b1->prev->free)
