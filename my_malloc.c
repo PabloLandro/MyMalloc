@@ -20,6 +20,13 @@ struct block {
 struct block *head;
 void *tail;
 
+
+/**
+ * @brief Instantiates the first block of memory
+ *
+ * This function must be called before using any of the other functions.
+ *
+ */
 void my_malloc_init() {
     head = (struct block*)STACK;
     head->free = true;
@@ -34,18 +41,16 @@ void my_malloc_init() {
     printf("Block size: %ld\n", sizeof(struct block));
 }
 
+/**
+ * @brief Returns true if the block can fit the given bytes
+ *
+ * @param[in]  b The block to be checked.
+ * @param[in]  size The number of bytes.
+ * @return True if b can allocate.
+ */
 bool can_allocate(struct block *b, size_t size) {
     size_t alloc = size + sizeof(struct block);
-    if (!b->free) {
-        //printf("not free\n");
-        return false;
-    }
 
-    // if (b->next != NULL)
-    //     printf("1remaining size: %ld (%ld)\n", (size_t)(b->next - b), alloc);
-    // else
-    //     printf("2remaining size: %ld (%ld)\n", (size_t)((void*)STACK+STACK_SIZE - (void*)b), alloc);
-    fflush(stdout);
     return b->free && (
         (size <= b->size)
         ||
@@ -54,13 +59,26 @@ bool can_allocate(struct block *b, size_t size) {
         (b->next == NULL && ((size_t)((void*)STACK+STACK_SIZE - (void*)b) >= alloc)));
 }
 
+
+/**
+ * @brief Allocates a block of the given stack in the stack
+ *
+ * Searches the first available block starting from the head.
+ *
+ * @param[in]  size The size to be allocated.
+ * @return Pointer to the start of the usable memory.
+ */
 void *my_malloc (size_t size) {
+
+    // Start the search at the beginning of the stack
     struct block *curr = head;
 
+    // Iterate until finding an available block
     while (!can_allocate(curr, size)) {
-        fflush(stdout);
+        // Go to the next block
         if (curr->next != NULL)
             curr = curr->next;
+        // Append a block
         else {
             struct block *new = (struct block*)((void*)curr + sizeof(struct block) + curr->size);
             new->prev = curr;
@@ -86,6 +104,16 @@ void *my_malloc (size_t size) {
     return ((void*)curr)+sizeof(struct block);
 }
 
+/**
+ * @brief Joins two consecutive blocks
+ *
+ * Blocks must be consecutive and free, this is not checked.
+ * The memory of the second block is added to the first.
+ * next and prev are modified so to maintain the linked list structure.
+ *
+ * @param[in]  b1 First block.
+ * @param[in]  b2 Second block.
+ */
 void merge_forward (struct block *b1, struct block *b2) {
     b1->size = b1->size + b2->size + sizeof(struct block);
     if (b2->next != NULL) {
@@ -96,6 +124,13 @@ void merge_forward (struct block *b1, struct block *b2) {
     }
 }
 
+/**
+ * @brief Merges a block with its neighbours
+ *
+ * Merges the block with whichever neighbor that isn't NULL and is free
+ *
+ * @param[in]  b1 block to be compacted.
+ */
 void compact (struct block *b1) {
     if (b1->next != NULL && b1->next->free)
         merge_forward(b1, b1->next);
@@ -103,14 +138,27 @@ void compact (struct block *b1) {
         merge_forward(b1->prev, b1);
 }
 
+/**
+ * @brief Frees up a block of memory
+ *
+ * Sets a block to free and checks if any compaction can be done.
+ * The address passed is the first usable space of the block to be freed,
+ * not the address of the block
+ *
+ * @param[in]  ptr Pointer to the first address of usable space to be freed.
+ */
 void my_free (void *ptr) {
     struct block *b = ptr - sizeof(struct block);
     b->free = true;
     compact(b);
 }
 
-#define BLOCK_LEN 32
-
+/**
+ * @brief Prints the linked list structure to the console
+ *
+ * Prints every parameter of every block in a JSON format
+ *
+ */
 void print_state() {
     struct block *curr = head;
     while (curr != NULL) {
