@@ -2,9 +2,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stddef.h>
-
-#include "print_utils.h"
-
+#include <string.h>
 
 #define STACK_SIZE 1024*1024
 
@@ -48,10 +46,19 @@ void my_malloc_init() {
  * @param[in]  size The number of bytes.
  * @return True if b can allocate.
  */
-bool can_allocate(struct block *b, size_t size) {
-    return b->free && size <= b->size;
+bool can_allocate(struct block b, size_t size) {
+    return b.free && size <= b.size;
 }
 
+struct block *find_available (size_t size) {
+    struct block *curr = head;
+    while (!can_allocate(*curr, size)) {
+        if (curr->next == NULL)
+            return NULL;
+        curr = curr->next;
+    }
+    return curr;
+}
 
 /**
  * @brief Allocates a block of the given stack in the stack
@@ -63,38 +70,26 @@ bool can_allocate(struct block *b, size_t size) {
  */
 void *my_malloc (size_t size) {
 
-    // Start the search at the beginning of the stack
-    struct block *curr = head;
+    // Find available block
+    struct block *curr = find_available(size);
 
-    // Iterate until finding an available block
-    while (!can_allocate(curr, size)) {
-        // Go to the next block
-        if (curr->next != NULL)
-            curr = curr->next;
-        // Append a new block
-        else {
-            struct block *new = (struct block*)((void*)curr + sizeof(struct block) + curr->size);
-            new->prev = curr;
-            new->size = (size_t)(tail-(void*) new) - sizeof(struct block);
-            new->next = NULL;
-            new->free = true;
-            curr->next = new;
-            curr = new;
-        }
+    if (curr == NULL) {
+        perror("Couldn't find a free block");
+        exit(EXIT_FAILURE);
     }
-
 
     curr->free = false;
 
     // If a block fits between the current and the next, we create it
-    if (curr->next != NULL && (void*)curr + size + sizeof(struct block) < (void*)curr->next) {
+    if (curr->next != NULL && (((void*)curr + size + 2*sizeof(struct block)) < (void*)curr->next)) {
         struct block *aux = (struct block*)((void*)curr + size + sizeof(struct block));
         aux->next = curr->next;
         aux->prev = curr;
-        aux->next->prev = aux;
+        curr->next->prev = aux;
+        curr->next = aux;
         aux->free = true;
-        aux->size = ((void*)aux->next - (void*)aux)-sizeof(struct block);
-        curr->size = size;
+        aux->size = ((void*)(aux->next) - (void*)aux)-sizeof(struct block);
+
     }
     // If curr is the last block and another fits, we create it
     else if (curr->next == NULL && (void*)curr + size + sizeof(struct block) < tail) {
@@ -104,8 +99,8 @@ void *my_malloc (size_t size) {
         aux->prev = curr;
         aux->free = true;
         aux->size = (tail - (void*)aux)-sizeof(struct block);
-        curr->size = size;
     }
+    curr->size = size;
     //printf("allocating %ld bytes in %p, head: %p, tail: %p\n", size+sizeof(struct block), curr, head, tail);
     return ((void*)curr)+sizeof(struct block);
 }
@@ -176,4 +171,43 @@ void print_state() {
         printf("block %p {\n\tprev: %p\n\tnext: %p\n\tsize: %ld\n\tfree: %s\n}\n", curr, curr->prev, curr->next, curr->size, (curr->free) ? "true": "false");
         curr = curr->next;
     }
+}
+
+/**
+ * @brief Copies the data in ptr to a new block of given size
+ * 
+ * If size is the same, same pointer is returned
+ * If ptr is NULL, malloc is called
+ * If size is 0, NULL pointer is returned
+ *
+ * @param[in] ptr Pointer to the first address of usable space of the block to be rellocated
+ * @param[in] size Size of the new block
+ * @return Pointer to the first address of usable space of the new block
+ *
+ */
+void *my_realloc (void *ptr, size_t size) {
+    if (ptr == NULL)
+        return my_malloc(size);
+    else if (size == 0)
+        return NULL;
+
+    // Get pointer to the block
+    struct block *from = (struct block*) (ptr - sizeof(struct block));
+
+    if (from->size == size)
+        return ptr;
+
+    // Create pointer to the usable spaces to perform copy
+    char *f = (char*)ptr;
+    char *d = (char*)my_malloc(size);
+
+    // Copy data
+    for (int i = 0; i < ((from->size < size) ? from->size: size); i++) {
+        d[i] = f[i];
+    }
+
+    // Free old block
+    my_free(ptr);
+    return (void*)d;
+
 }

@@ -74,7 +74,6 @@ void print_header() {
 int main() {
 
 	my_malloc_init();
-	for
 	mat_mul_test(20,true);
 	int flag = 1;
 	while(flag) {
