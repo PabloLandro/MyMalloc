@@ -156,6 +156,10 @@ void compact (struct block *b1) {
 void my_free (void *ptr) {
     struct block *b = ptr - sizeof(struct block);
     b->free = true;
+    if (b->next == NULL)
+        b->size = (void*) tail - (void*) b - 32;
+    else
+        b->size = (void*) (b->next) - (void*) b - 32;
     compact(b);
 }
 
