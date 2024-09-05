@@ -3,7 +3,9 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <string.h>
+#include <sys/mman.h>
 
+#define _BSD_SOURCE
 #define STACK_SIZE 1024*1024
 
 char STACK[STACK_SIZE];
@@ -27,6 +29,7 @@ void *tail;
  */
 void my_malloc_init() {
     head = (struct block*)STACK;
+    //head = (struct block*) mmap(NULL, STACK_SIZE, PROT_READ|PROT_WRITE, MAP_ANONYMOUS, -1, 0);
     head->free = true;
     head->next = NULL;
     head->prev = NULL;
@@ -206,9 +209,13 @@ void *my_realloc (void *ptr, size_t size) {
     char *d = (char*)my_malloc(size);
 
     // Copy data
+    /*
     for (int i = 0; i < ((from->size < size) ? from->size: size); i++) {
         d[i] = f[i];
     }
+    */
+
+    memcpy(d, f, ((from->size < size) ? from->size: size));
 
     // Free old block
     my_free(ptr);
